@@ -126,6 +126,10 @@ export default function BottleDetail({ pourOnOpen = false }: { pourOnOpen?: bool
         </p>
       )}
 
+      {photos && photos.length > 0 && (
+        <HeroPhoto blob={photos[0].blob} name={bottle.name} />
+      )}
+
       {!finished && (
         <div className="row">
           <span>Sealed backups</span>
@@ -347,13 +351,24 @@ export default function BottleDetail({ pourOnOpen = false }: { pourOnOpen?: bool
   );
 }
 
-function PhotoThumb({ blob, name }: { blob: Blob; name: string }) {
+function useBlobUrl(blob: Blob): string {
   const [url, setUrl] = useState('');
   useEffect(() => {
     const u = URL.createObjectURL(blob);
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [blob]);
+  return url;
+}
+
+function HeroPhoto({ blob, name }: { blob: Blob; name: string }) {
+  const url = useBlobUrl(blob);
+  if (!url) return null;
+  return <img className="hero-photo" src={url} alt={`Photo of ${name}`} />;
+}
+
+function PhotoThumb({ blob, name }: { blob: Blob; name: string }) {
+  const url = useBlobUrl(blob);
   if (!url) return null;
   return <img src={url} alt={`Photo of ${name}`} />;
 }
