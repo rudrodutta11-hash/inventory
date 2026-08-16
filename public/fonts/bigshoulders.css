@@ -1,0 +1,8 @@
+/* latin */
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(/fonts/bigshoulders-0.woff2) format('woff2');
+  }
