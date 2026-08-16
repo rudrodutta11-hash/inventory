@@ -26,7 +26,6 @@ export async function addBottle(input: NewBottleInput): Promise<Bottle> {
     remainingMl: status === 'active' && !input.sealed ? input.sizeMl : 0,
     openedDate: status === 'active' && !input.sealed ? now : undefined,
     status,
-    hasSticker: false,
     createdAt: now,
     updatedAt: now,
     ...input.details,

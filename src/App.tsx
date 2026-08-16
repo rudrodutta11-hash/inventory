@@ -9,7 +9,6 @@ import RankSession from './screens/RankSession';
 import RankList from './screens/RankList';
 import Graveyard from './screens/Graveyard';
 import Wishlist from './screens/Wishlist';
-import Stickers from './screens/Stickers';
 import Settings from './screens/Settings';
 import FooterNav from './components/FooterNav';
 
@@ -45,7 +44,6 @@ export default function App() {
         <Route path="/rank/list" element={<RankList />} />
         <Route path="/graveyard" element={<Graveyard />} />
         <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/stickers" element={<Stickers />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
       <FooterNav />

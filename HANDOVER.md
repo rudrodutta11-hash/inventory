@@ -46,10 +46,9 @@ bought it and the rest are optional, and you can fill them in later or never.
 **Recording a pour.** Open the bottle and tap **Pour**, then tap the measure.
 The level in the picture drops to match. Two taps.
 
-**The stickers.** Each bottle gets a numbered label with a square code on it.
-Point your normal camera app at one and it opens that bottle straight away —
-no need to hunt through a list. There's a bigger one for the inside of the
-cabinet door that opens the whole list.
+**Finding a bottle.** Type a bit of its name — or its number — into the
+search bar at the top. Every bottle has a number (the big stencilled one on
+its picture), so "17" takes you straight to bottle 017.
 
 **Which bottles need drinking.** Anything that's been open a while and is
 getting low shows up under "Needs finishing" on the main screen.
