@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getMeta } from './lib/meta';
+import { ensureGlobalRanking } from './lib/ranking';
 import Cabinet from './screens/Cabinet';
 import BottleDetail from './screens/BottleDetail';
 import AddBottle from './screens/AddBottle';
@@ -31,6 +32,8 @@ export default function App() {
   useEffect(() => {
     // Layer 1 of not losing the data: ask the browser not to evict us.
     void navigator.storage?.persist?.();
+    // one-time move from per-category ranks to the single global list
+    void ensureGlobalRanking();
   }, []);
 
   return (

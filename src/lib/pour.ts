@@ -1,5 +1,6 @@
 import { db, type Bottle } from '../db';
 import { afterMutation } from './mutate';
+import { recomputeRanking } from './ranking';
 
 export interface PourResult {
   emptied: boolean;
@@ -27,6 +28,8 @@ export async function logPour(bottle: Bottle, ml: number, note?: string): Promis
     }
     await db.bottles.update(bottle.id!, patch);
   });
+  // a finished bottle keeps its frozen score; the rest renumber
+  if (emptied) await recomputeRanking();
   await afterMutation();
 
   return { emptied, hasBackup: emptied && bottle.sealedCount > 0, newRemainingMl: newRemaining };
@@ -52,6 +55,7 @@ export async function correctLevel(bottle: Bottle, newLevelMl: number, note?: st
     }
     await db.bottles.update(bottle.id!, patch);
   });
+  if (emptied) await recomputeRanking();
   await afterMutation();
 
   return { emptied, hasBackup: emptied && bottle.sealedCount > 0, newRemainingMl: clamped };
@@ -88,6 +92,7 @@ export async function markFinished(bottleId: number): Promise<void> {
     finishedDate: now,
     updatedAt: now,
   });
+  await recomputeRanking();
   await afterMutation();
 }
 

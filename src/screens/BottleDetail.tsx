@@ -32,15 +32,18 @@ export default function BottleDetail({ pourOnOpen = false }: { pourOnOpen?: bool
     () => (bottle?.id ? db.photos.where('bottleId').equals(bottle.id).toArray() : []),
     [bottle?.id],
   );
-  const categoryCount = useLiveQuery(
-    () =>
-      bottle
-        ? db.bottles
-            .where('category').equals(bottle.category)
-            .filter((b) => b.status === 'active' && b.rankIndex !== undefined)
-            .count()
-        : 0,
-    [bottle?.category],
+  const rankInfo = useLiveQuery(
+    async () => {
+      if (!bottle || bottle.rankIndex === undefined) return undefined;
+      const ranked = await db.bottles
+        .filter((b) => b.status === 'active' && b.rankIndex !== undefined)
+        .toArray();
+      return {
+        total: ranked.length,
+        tied: ranked.filter((b) => b.rankIndex === bottle.rankIndex && b.id !== bottle.id).length,
+      };
+    },
+    [bottle?.id, bottle?.rankIndex],
   );
 
   const [sheetOpen, setSheetOpen] = useState(pourOnOpen);
@@ -151,12 +154,12 @@ export default function BottleDetail({ pourOnOpen = false }: { pourOnOpen?: bool
       {bottle.score !== undefined && bottle.rankIndex !== undefined && (
         <button
           className="row row-btn"
-          onClick={() => navigate('/rank/list', { state: { category: bottle.category } })}
+          onClick={() => navigate('/rank/list')}
         >
           <span className="display" style={{ fontSize: 26 }}>{bottle.score.toFixed(1)}</span>
           <span className="soft">
-            #{bottle.rankIndex + 1} of {categoryCount ?? '—'} {CATEGORY_LABELS[bottle.category].toLowerCase()}
-            {(categoryCount ?? 0) === 1 ? '' : 's'}
+            #{bottle.rankIndex + 1} of {rankInfo?.total ?? '—'} in the cabinet
+            {(rankInfo?.tied ?? 0) > 0 && ` · tied with ${rankInfo!.tied} other${rankInfo!.tied === 1 ? '' : 's'}`}
           </span>
         </button>
       )}
