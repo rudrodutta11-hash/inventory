@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Bottle } from '../db';
 import { searchBottles } from '../lib/fuzzy';
+import { sortBottles, WALL_SORTS, type WallSort } from '../lib/sort';
+import { getMeta, setMeta } from '../lib/meta';
 import { fmtMl, fmtPct, monthsSince, fillFraction } from '../lib/format';
 import { shareBackup } from '../lib/backup';
 import WallItem from '../components/WallItem';
@@ -14,17 +16,23 @@ export default function Cabinet() {
   const [query, setQuery] = useState('');
 
   const bottles = useLiveQuery(() => db.bottles.toArray(), []);
+  const sortMode = useLiveQuery(
+    async () => (await getMeta<WallSort>('wallSort')) ?? 'name', [], 'name' as WallSort);
   if (!bottles) return <div className="screen" />;
 
   const active = bottles.filter((b) => b.status === 'active');
-  const open = active.filter((b) => b.isOpen)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const openAll = sortBottles(active.filter((b) => b.isOpen), sortMode ?? 'name');
+  const searching = query.trim().length > 0;
+  // typing filters the wall itself; the dropdown only lists matches that
+  // are not on the wall (sealed-only, finished, wishlist)
+  const open = searching ? searchBottles(openAll, query) : openAll;
+  const offWallHits = searching
+    ? searchBottles(bottles.filter((b) => !(b.status === 'active' && b.isOpen)), query)
+    : [];
   const sealedTotal = active.reduce((n, b) => n + b.sealedCount, 0);
-  const needsFinishing = open.filter(
+  const needsFinishing = openAll.filter(
     (b) => fillFraction(b.remainingMl, b.sizeMl) < 0.33 && monthsSince(b.openedDate) >= 6,
   );
-
-  const hits = query.trim() ? searchBottles(bottles, query) : [];
 
   if (active.length === 0) {
     return (
@@ -53,14 +61,14 @@ export default function Cabinet() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        {hits.length > 0 && (
-          <div className="search-results" role="listbox" aria-label="Search results">
-            {hits.slice(0, 8).map((b) => (
+        {offWallHits.length > 0 && (
+          <div className="search-results" role="listbox" aria-label="Matches not on the shelf">
+            {offWallHits.slice(0, 6).map((b) => (
               <SearchHit key={b.id} bottle={b} onGo={() => navigate(`/b/${b.serial}`)} />
             ))}
           </div>
         )}
-        {query.trim() && hits.length === 0 && (
+        {searching && open.length === 0 && offWallHits.length === 0 && (
           <div className="search-results">
             <p style={{ padding: 12 }} className="soft">Nothing matches. Try a serial or part of a name.</p>
           </div>
@@ -72,12 +80,31 @@ export default function Cabinet() {
       <RemoteRestoreBanner />
       <BackupBanner onExport={() => void shareBackup()} />
 
+      {openAll.length > 1 && !searching && (
+        <div className="sort-row" role="group" aria-label="Sort the shelf">
+          <span className="smallcaps small soft">Sort</span>
+          {WALL_SORTS.map((s) => (
+            <button
+              key={s.key}
+              className="sort-btn"
+              aria-pressed={sortMode === s.key}
+              onClick={() => void setMeta('wallSort', s.key)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {open.length > 0 && (
         <section className="section" style={{ marginTop: 8 }}>
           <div className="wall">
             {open.map((b) => <WallItem key={b.id} bottle={b} width={84} />)}
           </div>
         </section>
+      )}
+      {searching && open.length === 0 && offWallHits.length > 0 && (
+        <p className="soft small" style={{ marginTop: 12 }}>Nothing open matches — the matches above are sealed, finished or wished for.</p>
       )}
 
       {sealedTotal > 0 && (

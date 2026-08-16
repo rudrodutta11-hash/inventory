@@ -16,6 +16,7 @@ interface SeedSpec {
   region?: string;
   sizeMl?: number;
   cask?: string;
+  cs?: boolean;          // cask strength
   fill: number;          // 0–1; 1 with sealed=own bottle sealed
   sealed?: number;
   openedDaysAgo?: number;
@@ -30,14 +31,14 @@ const SPECS: SeedSpec[] = [
   // ---- active, open ----
   { name: 'Talisker 10', distillery: 'Talisker', category: 'single_malt', abv: 45.8, age: 10, region: 'Isle of Skye', fill: 0.44, sealed: 1, openedDaysAgo: 122, rank: 2, location: 'Cabinet — top shelf', price: 48 },
   { name: 'Lagavulin 16', distillery: 'Lagavulin', category: 'single_malt', abv: 43, age: 16, region: 'Islay', fill: 0.71, openedDaysAgo: 60, rank: 0, location: 'Cabinet — top shelf', price: 89 },
-  { name: 'Glenfarclas 105', distillery: 'Glenfarclas', category: 'single_malt', abv: 60, region: 'Speyside', cask: 'Sherry', fill: 0.28, openedDaysAgo: 210, rank: 1, location: 'Cabinet — top shelf', price: 55 },
+  { name: 'Glenfarclas 105', distillery: 'Glenfarclas', category: 'single_malt', abv: 60, region: 'Speyside', cask: 'Sherry', cs: true, fill: 0.28, openedDaysAgo: 210, rank: 1, location: 'Cabinet — top shelf', price: 55 },
   { name: 'Clynelish 14', distillery: 'Clynelish', category: 'single_malt', abv: 46, age: 14, region: 'Highlands', fill: 0.9, openedDaysAgo: 20, rank: 3, price: 52 },
   { name: 'Arran 10', distillery: 'Arran', category: 'single_malt', abv: 46, age: 10, region: 'Isle of Arran', fill: 0.12, openedDaysAgo: 290, rank: 4, price: 40 },
   { name: 'Johnnie Walker Black', category: 'blended_scotch', abv: 40, age: 12, fill: 0.55, openedDaysAgo: 75, rank: 0, price: 30 },
   { name: 'Buffalo Trace', distillery: 'Buffalo Trace', category: 'bourbon', abv: 45, region: 'Kentucky', fill: 0.62, sealed: 1, openedDaysAgo: 95, rank: 0, price: 28 },
   { name: 'Rittenhouse Rye', distillery: 'Heaven Hill', category: 'rye', abv: 50, fill: 0.8, openedDaysAgo: 30, rank: 0, price: 32 },
   { name: 'Redbreast 12', distillery: 'Midleton', category: 'irish', abv: 40, age: 12, cask: 'Sherry', fill: 0.35, openedDaysAgo: 150, rank: 0, price: 60 },
-  { name: 'Nikka From the Barrel', distillery: 'Nikka', category: 'japanese', abv: 51.4, sizeMl: 500, fill: 0.66, openedDaysAgo: 45, rank: 0, price: 45 },
+  { name: 'Nikka From the Barrel', distillery: 'Nikka', category: 'japanese', abv: 51.4, sizeMl: 500, cs: true, fill: 0.66, openedDaysAgo: 45, rank: 0, price: 45 },
   // ---- active, sealed only ----
   { name: 'Springbank 10', distillery: 'Springbank', category: 'single_malt', abv: 46, age: 10, region: 'Campbeltown', fill: 0, sealed: 1, rank: 5, price: 65 },
   { name: 'El Dorado 12', category: 'rum', abv: 40, age: 12, region: 'Guyana', fill: 0, sealed: 2, price: 38 },
@@ -73,6 +74,7 @@ export async function seedDemo(): Promise<void> {
         region: s.region,
         sizeMl,
         caskType: s.cask,
+        caskStrength: s.cs,
         bottler: 'official',
         location: s.location,
         sealedCount: s.sealed ?? 0,
