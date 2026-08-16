@@ -1,7 +1,7 @@
 import { db, type Bottle, type Category } from '../db';
 import { nextSerial } from './serial';
 import { afterMutation } from './mutate';
-import { recomputeCategory } from './ranking';
+import { recomputeRanking } from './ranking';
 
 export interface NewBottleInput {
   name: string;
@@ -51,6 +51,6 @@ export async function deleteBottle(bottle: Bottle): Promise<void> {
     await db.matches.where('b').equals(id).delete();
     await db.bottles.delete(id);
   });
-  await recomputeCategory(bottle.category);
+  await recomputeRanking();
   await afterMutation();
 }

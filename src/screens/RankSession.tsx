@@ -1,18 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, CATEGORY_LABELS, type Bottle } from '../db';
 import {
   startSession, nextIndex, answer, applyInsertion, recordMatch, planRerank,
-  type InsertSession, type Answer,
+  rankedLevels, ensureGlobalRanking,
+  type InsertSession,
 } from '../lib/ranking';
+import type { Answer } from '../lib/ranking';
 import BottleSilhouette from '../components/BottleSilhouette';
 
 interface LiveSession {
   bottle: Bottle;          // the bottle being placed
-  list: Bottle[];          // the ordered list it is being placed into
+  levels: Bottle[][];      // the level list it is being placed into
   session: InsertSession;
-  kind: 'insert' | 'rerank';
 }
 
 export default function RankSession() {
@@ -22,28 +23,39 @@ export default function RankSession() {
   const [pickPair, setPickPair] = useState<Bottle | null>(null);
   const [duel, setDuel] = useState<{ a: Bottle; b: Bottle } | null>(null);
 
+  useEffect(() => {
+    void ensureGlobalRanking();
+  }, []);
+
   if (!bottles) return <div className="screen" />;
 
   const unranked = bottles.filter((b) => b.rankIndex === undefined)
     .sort((a, b) => a.name.localeCompare(b.name));
-  const ranked = bottles.filter((b) => b.rankIndex !== undefined);
+  const ranked = bottles.filter((b) => b.rankIndex !== undefined)
+    .sort((a, b) => (a.rankIndex ?? 0) - (b.rankIndex ?? 0) || a.name.localeCompare(b.name));
 
-  async function finishSession(s: LiveSession, insertAt: number) {
-    await applyInsertion(s.bottle.category, s.bottle.id!, insertAt);
-    const count = s.list.length + 1;
+  async function finishSession(s: LiveSession) {
+    const { insertAt, tieAt } = s.session;
+    await applyInsertion(s.bottle.id!, insertAt, tieAt);
     setLive(null);
-    setDoneMsg(`${s.bottle.name} placed #${insertAt + 1} of ${count} ${CATEGORY_LABELS[s.bottle.category].toLowerCase()}${count === 1 ? '' : 's'}.`);
+    if (tieAt !== undefined && s.levels[tieAt]) {
+      const partner = s.levels[tieAt][0];
+      setDoneMsg(`${s.bottle.name} rated level with ${partner.name} — they share a score.`);
+    } else {
+      const count = s.levels.length + 1;
+      setDoneMsg(`${s.bottle.name} placed #${insertAt + 1} of ${count}.`);
+    }
   }
 
   async function startInsert(bottle: Bottle) {
     setDoneMsg('');
-    const list = ranked
-      .filter((b) => b.category === bottle.category && b.id !== bottle.id)
-      .sort((a, b) => (a.rankIndex ?? 0) - (b.rankIndex ?? 0));
-    const session = startSession(list.length);
-    const s: LiveSession = { bottle, list, session, kind: 'insert' };
+    const levels = (await rankedLevels())
+      .map((level) => level.filter((b) => b.id !== bottle.id))
+      .filter((level) => level.length > 0);
+    const session = startSession(levels.length);
+    const s: LiveSession = { bottle, levels, session };
     if (session.done) {
-      await finishSession(s, session.insertAt);
+      await finishSession(s);
       return;
     }
     setLive(s);
@@ -53,14 +65,14 @@ export default function RankSession() {
     if (!live) return;
     const idx = nextIndex(live.session);
     if (idx === null) return;
-    const opponent = live.list[idx];
+    const opponent = live.levels[idx][0];
     await recordMatch(
       live.bottle.id!, opponent.id!,
       result === 'new' ? 'a' : result === 'old' ? 'b' : result === 'close' ? 'tie' : 'skip',
     );
     const next = answer(live.session, idx, result);
     if (next.done) {
-      await finishSession(live, next.insertAt);
+      await finishSession({ ...live, session: next });
     } else {
       setLive({ ...live, session: next });
     }
@@ -68,15 +80,15 @@ export default function RankSession() {
 
   async function resolveDuel(winner: Bottle, loser: Bottle) {
     await recordMatch(winner.id!, loser.id!, 'a');
-    const plan = await planRerank(winner.category, winner.id!, loser.id!);
+    const plan = await planRerank(winner.id!, loser.id!);
     setDuel(null);
     if (!plan) {
       setDoneMsg('The order already agrees. Nothing to move.');
       return;
     }
-    const s: LiveSession = { bottle: plan.moving, list: plan.list, session: plan.session, kind: 'rerank' };
+    const s: LiveSession = { bottle: plan.moving, levels: plan.levels, session: plan.session };
     if (plan.session.done) {
-      await finishSession(s, plan.session.insertAt);
+      await finishSession(s);
       return;
     }
     setLive(s);
@@ -85,7 +97,8 @@ export default function RankSession() {
   // ---------- active comparison ----------
   if (live) {
     const idx = nextIndex(live.session);
-    const opponent = idx !== null ? live.list[idx] : null;
+    const level = idx !== null ? live.levels[idx] : null;
+    const opponent = level?.[0];
     if (!opponent) return <div className="screen" />;
     return (
       <div className="screen">
@@ -95,12 +108,22 @@ export default function RankSession() {
         </p>
         <div className="compare-grid">
           <CompareCard bottle={live.bottle} onPick={() => void respond('new')} />
-          <CompareCard bottle={opponent} onPick={() => void respond('old')} />
+          <CompareCard
+            bottle={opponent}
+            tiedWith={level.length - 1}
+            onPick={() => void respond('old')}
+          />
         </div>
         <div style={{ display: 'grid', gap: 8 }}>
-          <button className="btn btn--full" onClick={() => void respond('close')}>Too close to call</button>
-          <button className="btn btn--quiet btn--full" onClick={() => void respond('skip')}>Can't compare</button>
-          <button className="btn btn--quiet btn--full" onClick={() => setLive(null)}>Stop for now</button>
+          <button className="btn btn--full" onClick={() => void respond('close')}>
+            Too close to call — rate them level
+          </button>
+          <button className="btn btn--quiet btn--full" onClick={() => void respond('skip')}>
+            Can't compare
+          </button>
+          <button className="btn btn--quiet btn--full" onClick={() => setLive(null)}>
+            Stop for now
+          </button>
         </div>
       </div>
     );
@@ -126,7 +149,8 @@ export default function RankSession() {
     <div className="screen">
       <h1 className="display" style={{ fontSize: 26, marginBottom: 4 }}>Ranking</h1>
       <p className="soft" style={{ fontSize: 15 }}>
-        A few head-to-head questions place each bottle exactly. <Link to="/rank/list">See the lists</Link>.
+        One list for the whole cabinet. A few head-to-head questions place each
+        bottle; too close to call means they share a score. <Link to="/rank/list">See the list</Link>.
       </p>
 
       {doneMsg && <p className="banner" role="status" style={{ marginTop: 16 }}>{doneMsg}</p>}
@@ -150,11 +174,10 @@ export default function RankSession() {
         <p className="small soft" style={{ marginBottom: 8 }}>
           {pickPair
             ? `Pick an opponent for ${pickPair.name}.`
-            : 'Pick two ranked bottles from the same category to force a head-to-head.'}
+            : 'Pick any two ranked bottles to force a head-to-head.'}
         </p>
         {ranked
-          .filter((b) => (pickPair ? b.category === pickPair.category && b.id !== pickPair.id : true))
-          .sort((a, b) => a.category.localeCompare(b.category) || (a.rankIndex ?? 0) - (b.rankIndex ?? 0))
+          .filter((b) => (pickPair ? b.id !== pickPair.id : true))
           .map((b) => (
             <button
               key={b.id}
@@ -174,7 +197,7 @@ export default function RankSession() {
                 {b.name}
                 {pickPair?.id === b.id && <span className="small soft"> · selected</span>}
               </span>
-              <span className="small soft smallcaps">{CATEGORY_LABELS[b.category]}</span>
+              <span className="mono small soft">{b.score?.toFixed(1)}</span>
             </button>
           ))}
         {pickPair && (
@@ -187,7 +210,7 @@ export default function RankSession() {
   );
 }
 
-function CompareCard({ bottle, onPick }: { bottle: Bottle; onPick: () => void }) {
+function CompareCard({ bottle, tiedWith = 0, onPick }: { bottle: Bottle; tiedWith?: number; onPick: () => void }) {
   return (
     <button className="compare-card" onClick={onPick}>
       <BottleSilhouette bottle={bottle} width={64} />
@@ -195,6 +218,9 @@ function CompareCard({ bottle, onPick }: { bottle: Bottle; onPick: () => void })
       <span className="small soft">
         {bottle.ageStatement ? `${bottle.ageStatement} YO` : 'NAS'} · {CATEGORY_LABELS[bottle.category]}
       </span>
+      {tiedWith > 0 && (
+        <span className="small faint">tied with {tiedWith} other{tiedWith === 1 ? '' : 's'}</span>
+      )}
     </button>
   );
 }
