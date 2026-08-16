@@ -17,8 +17,16 @@ export default function App() {
   const theme = useLiveQuery(async () => (await getMeta<string>('theme')) ?? 'light', [], 'light');
 
   useEffect(() => {
-    if (theme === 'cellar') document.documentElement.dataset.theme = 'cellar';
+    const cellar = theme === 'cellar';
+    if (cellar) document.documentElement.dataset.theme = 'cellar';
     else delete document.documentElement.dataset.theme;
+
+    // The in-app theme is a deliberate choice and can disagree with the OS,
+    // so drive the status-bar colour from it rather than prefers-color-scheme.
+    const paper = cellar ? '#17191A' : '#E5E1D6';
+    for (const el of document.querySelectorAll('meta[name="theme-color"]')) {
+      el.setAttribute('content', paper);
+    }
   }, [theme]);
 
   useEffect(() => {

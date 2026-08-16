@@ -1,6 +1,7 @@
 import { db, type Bottle, type Category } from '../db';
 import { scoreFor } from './score';
 import { afterMutation } from './mutate';
+import { setMeta } from './meta';
 
 function iso(daysAgo: number): string {
   return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
@@ -128,6 +129,9 @@ export async function seedDemo(): Promise<void> {
       { a: ids[4], b: ids[3], result: 'b', at: iso(280) },
     ]);
   });
+  // marks the cabinet as demo until it is cleared, so made-up bottles are
+  // never mistaken for the real ones
+  await setMeta('demoLoaded', true);
   await afterMutation();
 }
 
@@ -139,5 +143,6 @@ export async function clearAll(): Promise<void> {
       db.matches.clear(), db.photos.clear(),
     ]);
   });
+  await setMeta('demoLoaded', false);
   await afterMutation();
 }

@@ -4,9 +4,29 @@
    inside bottle silhouettes. Never in chrome.
    ============================================================ */
 
-@import url('/fonts/bigshoulders.css');
-@import url('/fonts/publicsans.css');
-@import url('/fonts/jetbrainsmono.css');
+/* Fonts live in src/ so Vite fingerprints them and rewrites the URLs to the
+   deploy base. Absolute /fonts/ paths break when served from a subpath. */
+@font-face {
+  font-family: 'Big Shoulders Display';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fonts/bigshoulders-0.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fonts/publicsans-0.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('./fonts/jetbrainsmono-0.woff2') format('woff2');
+}
 
 :root {
   /* surfaces — manila and index card */
@@ -74,11 +94,13 @@ a { color: var(--ink); }
 .screen {
   max-width: 560px;
   margin: 0 auto;
-  padding: 16px 16px 96px;  /* room for footer nav */
+  /* top: clear the iPhone status bar under viewport-fit=cover.
+     bottom: clear the footer nav *and* the home indicator. */
+  padding: max(16px, env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
   min-height: 100dvh;
 }
 
-.screen--bare { padding-bottom: 16px; }
+.screen--bare { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
 
 .section { margin-top: 28px; }
 
@@ -226,7 +248,7 @@ input[type='checkbox'] {
 
 .search-wrap {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top);
   z-index: 10;
   background: var(--paper);
   padding: 8px 0 12px;
@@ -361,7 +383,8 @@ input[type='checkbox'] {
   grid-template-columns: repeat(4, 1fr);
   background: var(--card);
   border-top: 1px solid var(--rule);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* the home indicator sits exactly here */
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 .footer-nav a {
@@ -402,7 +425,8 @@ input[type='checkbox'] {
   margin: 0 auto;
   background: var(--paper);
   border-top: 1px solid var(--ink);
-  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  /* Pour buttons must clear the home indicator, not sit under it */
+  padding: 20px 16px max(20px, env(safe-area-inset-bottom));
 }
 
 .sheet h2 {
@@ -448,6 +472,38 @@ dialog.confirm .dialog-actions { display: flex; gap: 8px; justify-content: flex-
 }
 
 .banner .btn { min-height: 40px; padding: 0 12px; font-size: var(--fs-15); }
+
+/* demo data must never read as the real cabinet */
+.banner--demo { border-left: 3px solid var(--stencil); }
+
+/* first run: three lines, one card, dismissible */
+.first-run {
+  border: 1px solid var(--ink);
+  background: var(--card);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.first-run h2 {
+  font-size: var(--fs-20);
+  margin-bottom: 12px;
+}
+.first-run ol {
+  margin: 0 0 16px 20px;
+  display: grid;
+  gap: 10px;
+}
+.first-run li { font-size: var(--fs-15); }
+
+.linklike {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+}
 
 /* ---------- steppers ---------- */
 
@@ -629,12 +685,34 @@ dialog.confirm .dialog-actions { display: flex; gap: 8px; justify-content: flex-
 }
 .cabinet-card img { width: 160px; height: 160px; image-rendering: pixelated; }
 
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
 @media print {
   body { background: #fff; }
   .no-print { display: none !important; }
   .screen { padding: 0; max-width: none; }
   .sticker-grid { grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+  /* QR must stay >= 20mm square or phone cameras struggle at an angle
+     in a dim room. 24mm gives headroom for the quiet zone. */
+  .sticker img { width: 24mm; height: 24mm; }
+  .sticker { padding: 3mm; }
+  .cabinet-card img { width: 45mm; height: 45mm; }
 }
+
+/* which host the printed codes point at — visible before the printer */
+.host-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  padding: 8px 10px;
+  margin-bottom: 16px;
+}
+.host-note .k { color: var(--ink-soft); }
 
 /* ---------- graveyard ---------- */
 
