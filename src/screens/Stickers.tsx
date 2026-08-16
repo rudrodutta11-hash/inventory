@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import QRCode from 'qrcode';
 import { db, type Bottle } from '../db';
 import { updateBottle } from '../lib/bottles';
-import { stickerUrl, cabinetUrl, appRoot, currentOrigin, currentBase, isLocalHost } from '../lib/urls';
+import { useLocation } from 'react-router-dom';
+import { stickerUrl, cabinetUrl, printRoot, isLocalHost } from '../lib/urls';
 
 function useQr(text: string): string {
   const [url, setUrl] = useState('');
@@ -23,6 +24,8 @@ export default function Stickers() {
     [],
   );
   const [selected, setSelected] = useState<Set<number> | null>(null);
+  const { search } = useLocation();
+  const { root, overridden } = printRoot(search);
 
   useEffect(() => {
     if (bottles && selected === null) {
@@ -48,8 +51,7 @@ export default function Stickers() {
     for (const b of chosen) await updateBottle(b.id!, { hasSticker: true });
   }
 
-  const root = appRoot(currentOrigin(), currentBase());
-  const local = isLocalHost(currentOrigin());
+  const local = isLocalHost(root);
 
   return (
     <div className="screen screen--bare">
@@ -83,7 +85,9 @@ export default function Stickers() {
           data-app-root={root}
           style={local ? { borderLeft: '3px solid var(--stencil)' } : undefined}
         >
-          <span className="k smallcaps">Codes point at</span>
+          <span className="k smallcaps">
+            Codes point at{overridden ? ' (set by hand)' : ''}
+          </span>
           <span className="mono small" data-testid="sticker-host">{root}</span>
           {local && (
             <span className="small" role="alert">
@@ -104,16 +108,16 @@ export default function Stickers() {
       </div>
 
       <div className="sticker-grid">
-        {chosen.map((b) => <Sticker key={b.id} bottle={b} />)}
+        {chosen.map((b) => <Sticker key={b.id} bottle={b} root={root} />)}
       </div>
 
-      <CabinetCard />
+      <CabinetCard root={root} />
     </div>
   );
 }
 
-function Sticker({ bottle }: { bottle: Bottle }) {
-  const url = stickerUrl(bottle.serial);
+function Sticker({ bottle, root }: { bottle: Bottle; root: string }) {
+  const url = stickerUrl(bottle.serial, root);
   const qr = useQr(url);
   return (
     <div className="sticker" data-qr-url={url}>
@@ -124,8 +128,8 @@ function Sticker({ bottle }: { bottle: Bottle }) {
   );
 }
 
-function CabinetCard() {
-  const url = cabinetUrl();
+function CabinetCard({ root }: { root: string }) {
+  const url = cabinetUrl(root);
   const qr = useQr(url);
   return (
     <div className="cabinet-card" data-qr-url={url}>

@@ -19,10 +19,16 @@ export function appUrl(origin: string, baseUrl: string, hashPath: string): strin
   return `${appRoot(origin, baseUrl)}#${path}`;
 }
 
-/** A host we must not print stickers for. */
-export function isLocalHost(origin: string): boolean {
-  return /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(:\d+)?$/i.test(origin)
-    || origin.startsWith('file://');
+/** A host we must not print stickers for. Accepts an origin or a full URL. */
+export function isLocalHost(originOrUrl: string): boolean {
+  if (originOrUrl.startsWith('file://')) return true;
+  try {
+    const { hostname } = new URL(originOrUrl);
+    return ['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'].includes(hostname)
+      || hostname.endsWith('.local');
+  } catch {
+    return false;
+  }
 }
 
 /** Runtime values for the current document. */
@@ -34,10 +40,34 @@ export function currentBase(): string {
   return import.meta.env.BASE_URL;
 }
 
-export function stickerUrl(serial: string): string {
-  return appUrl(currentOrigin(), currentBase(), `/b/${serial}`);
+/**
+ * The root the printed codes will point at.
+ *
+ * Normally that is wherever the app is being served from. A `?host=` search
+ * param on the stickers route overrides it, so a sheet can be produced for
+ * the published address before the app is reachable there — the override is
+ * always shown on screen, so what gets printed is never a guess.
+ */
+export function printRoot(search?: string): { root: string; overridden: boolean } {
+  const params = new URLSearchParams(search ?? '');
+  const override = params.get('host');
+  if (override) {
+    try {
+      const url = new URL(override);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return { root: appRoot(url.origin, url.pathname), overridden: true };
+      }
+    } catch {
+      // unparseable override falls through to the served location
+    }
+  }
+  return { root: appRoot(currentOrigin(), currentBase()), overridden: false };
 }
 
-export function cabinetUrl(): string {
-  return appUrl(currentOrigin(), currentBase(), '/');
+export function stickerUrl(serial: string, root?: string): string {
+  return `${root ?? appRoot(currentOrigin(), currentBase())}#/b/${serial}`;
+}
+
+export function cabinetUrl(root?: string): string {
+  return `${root ?? appRoot(currentOrigin(), currentBase())}#/`;
 }

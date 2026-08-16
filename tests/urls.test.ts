@@ -1,7 +1,7 @@
 // Sticker QR codes become physical objects. If the encoded host is wrong,
 // the fix is peeling stickers off 40 bottles — so pin it down here.
 import { describe, it, expect } from 'vitest';
-import { appRoot, appUrl, isLocalHost } from '../src/lib/urls';
+import { appRoot, appUrl, isLocalHost, stickerUrl, cabinetUrl } from '../src/lib/urls';
 
 const PROD_ORIGIN = 'https://rudrodutta11-hash.github.io';
 const PROD_BASE = '/inventory/';
@@ -45,6 +45,13 @@ describe('sticker URLs on the production deployment', () => {
   it('flags local hosts so stickers are not printed against them', () => {
     expect(isLocalHost('http://localhost:4173')).toBe(true);
     expect(isLocalHost('http://127.0.0.1:5173')).toBe(true);
+    expect(isLocalHost('http://localhost:4173/inventory/')).toBe(true);
     expect(isLocalHost(PROD_ORIGIN)).toBe(false);
+    expect(isLocalHost(PROD_URL)).toBe(false);
+  });
+
+  it('renders both QR kinds against an explicit print root', () => {
+    expect(stickerUrl('017', PROD_URL)).toBe(`${PROD_URL}#/b/017`);
+    expect(cabinetUrl(PROD_URL)).toBe(`${PROD_URL}#/`);
   });
 });

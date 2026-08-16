@@ -1,5 +1,8 @@
 # The Cabinet
 
+**Live:** https://rudrodutta11-hash.github.io/inventory/ ·
+**Setup for a non-technical user:** [HANDOVER.md](HANDOVER.md)
+
 A home spirits inventory that lives on your phone. It answers two questions
 fast: *what do I have?* and *how much is left?* — and it works with the phone
 in airplane mode. No account, no login, no server.
@@ -60,19 +63,36 @@ TypeScript + React + Vite. Data layer is Dexie (IndexedDB). PWA via
 vite-plugin-pwa. No CSS framework — the design is hand-written in
 `src/theme.css`.
 
-## Deploy to static hosting
+## Deploy
 
-The app is a static site — any static host works (Netlify, Vercel,
-GitHub Pages, Cloudflare Pages).
+`.github/workflows/deploy.yml` builds and publishes to GitHub Pages on every
+push to `main`. The repository needs Pages switched on once, under
+**Settings → Pages → Build and deployment → Source → GitHub Actions**; the
+workflow token is not permitted to do that itself.
+
+The site is served from the `/inventory/` sub-path, which is why
+`vite.config.ts` sets `base`, and why the service-worker scope and the
+manifest's `id` / `start_url` / `scope` all match it. If you fork this to a
+different path, change the `BASE` constant in `vite.config.ts` and the
+production constants in `tests/urls.test.ts` and `scripts/`. No server-side
+rewrites are needed anywhere: routing uses the URL hash (`/#/b/017`), so deep
+links resolve on any static host.
 
 ```bash
 npm run build      # output in dist/
 ```
 
-Point the host at the `dist/` directory. No server-side rewrites are needed:
-routing uses the URL hash (`/#/b/017`), so deep links resolve anywhere,
-including from QR stickers. The build uses relative asset paths, so it also
-works when served from a sub-path (e.g. GitHub Pages project sites).
+## Verification scripts
+
+```bash
+npm test                          # unit tests, incl. built-output assertions
+node scripts/verify-live.mjs      # full flow against the deployed URL
+node scripts/verify-motion.mjs    # prefers-reduced-motion, with a control
+node scripts/make-stickers-pdf.mjs   # writes stickers.pdf, decodes every QR
+```
+
+`verify-live.mjs` and `make-stickers-pdf.mjs` take a URL argument so they can
+run against a local `npm run preview` as well as the deployed site.
 
 ## Optional: the sync worker
 
