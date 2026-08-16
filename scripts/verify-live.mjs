@@ -4,8 +4,8 @@
  *   node scripts/verify-live.mjs [url]
  *
  * Defaults to the GitHub Pages deployment. Checks the three things that
- * must work on the real host: offline reload, QR deep link, and the pour
- * flow — plus the sticker host, which becomes a physical object.
+ * must work on the real host: offline reload, serial deep links, and the
+ * pour flow.
  */
 import { chromium } from 'playwright';
 
@@ -92,22 +92,11 @@ await page.waitForSelector('.fill-readout');
 check('pour persists across a hard reload',
   (await page.locator('.fill-readout').innerText()) === after);
 
-// 6. sticker QR encodes the deployed absolute URL
-await page.goto(`${URL_BASE}#/stickers`);
-await page.waitForSelector('.sticker');
-const host = await page.getByTestId('sticker-host').innerText();
-const qrUrl = await page.locator('.sticker').first().getAttribute('data-qr-url');
-const cabUrl = await page.locator('.cabinet-card').getAttribute('data-qr-url');
-check('sticker host line shows the deployed origin', host === URL_BASE, host);
-check('bottle QR encodes the absolute deployed URL',
-  qrUrl.startsWith(URL_BASE) && qrUrl.includes('#/b/'), qrUrl);
-check('cabinet-door QR encodes the deployed root', cabUrl === `${URL_BASE}#/`, cabUrl);
-// the warning is correct behaviour when verifying against a local server,
-// so assert whichever outcome the target host calls for
-const isLocalTarget = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(URL_BASE);
-const warned = await page.locator('.host-note [role=alert]').count() > 0;
-check(isLocalTarget ? 'localhost warning shown when serving locally' : 'no localhost warning on the deployed host',
-  isLocalTarget ? warned : !warned);
+// 6. serial deep link (the URL shape a shared/bookmarked link would use)
+await page.goto(`${URL_BASE}#/b/003`);
+await page.waitForSelector('.fill-readout, .detail-head');
+check('serial deep link /#/b/003 opens its bottle',
+  (await page.locator('h1').first().innerText()).length > 0);
 
 // 7. service worker, then offline
 await page.goto(URL_BASE);
@@ -122,7 +111,7 @@ check('offline: hard reload still renders the cabinet', true);
 
 await page.goto(`${URL_BASE}#/b/002`);
 await page.waitForSelector('text=Lagavulin 16', { timeout: 15000 });
-check('offline: QR deep link /#/b/002 opens the bottle', true);
+check('offline: serial deep link /#/b/002 opens the bottle', true);
 
 await page.click('button:has-text("Pour")');
 await page.waitForSelector('.sheet');

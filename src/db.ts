@@ -53,7 +53,6 @@ export interface Bottle {
   status: 'active' | 'finished' | 'wishlist';
   finishedDate?: string;
   notesQuick?: string;
-  hasSticker?: boolean;
   createdAt: string;
   updatedAt: string;
 }

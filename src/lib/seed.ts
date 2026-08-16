@@ -86,7 +86,6 @@ export async function seedDemo(): Promise<void> {
         status: finished ? 'finished' : 'active',
         finishedDate: finished ? iso(s.finishedDaysAgo!) : undefined,
         notesQuick: s.buyAgain === undefined ? undefined : s.buyAgain ? 'Buy again' : 'Once was enough',
-        hasSticker: i < 8,
         createdAt: iso(400 - i),
         updatedAt: now,
       };

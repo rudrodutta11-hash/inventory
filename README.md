@@ -9,8 +9,8 @@ in airplane mode. No account, no login, no server.
 
 - **The bottle wall** — every open bottle drawn at its actual fill level.
   A full cabinet glows amber; a depleted one goes grey.
-- **Log a pour in two taps** — scan the QR sticker on the bottle, tap Pour,
-  tap 45 ml. Done.
+- **Log a pour in two taps** — open the bottle, tap Pour, tap 45 ml. Done.
+  Search finds any bottle by name or by its serial number.
 - **Ranking without ratings** — a few "which do you prefer?" questions place
   each bottle exactly. The score comes from the ranking, so it stays honest.
 - **The graveyard** — finished bottles are archived with their dates, scores
@@ -38,16 +38,6 @@ up-to-date copy off the phone on its own.
 
 It now opens full screen from its own icon, works offline, and its storage
 is exempt from Safari's 7-day clean-up. This step is worth doing on day one.
-
-## Printing stickers
-
-Open **Stickers** from the Cabinet screen. Bottles that don't yet have a
-sticker are pre-ticked. Tap **Print**, print the page on A4, cut out the
-labels and stick each one on its bottle. Scanning a sticker with the normal
-camera app opens that bottle's page — even offline. There is also one larger
-card with a QR for the whole cabinet, meant for the inside of the cabinet
-door. After printing, tap **Mark as printed** so those bottles drop off the
-list next time.
 
 ## Local development
 
@@ -88,11 +78,10 @@ npm run build      # output in dist/
 npm test                          # unit tests, incl. built-output assertions
 node scripts/verify-live.mjs      # full flow against the deployed URL
 node scripts/verify-motion.mjs    # prefers-reduced-motion, with a control
-node scripts/make-stickers-pdf.mjs   # writes stickers.pdf, decodes every QR
 ```
 
-`verify-live.mjs` and `make-stickers-pdf.mjs` take a URL argument so they can
-run against a local `npm run preview` as well as the deployed site.
+Both take a URL argument so they can run against a local `npm run preview`
+as well as the deployed site.
 
 ## Optional: the sync worker
 

@@ -113,7 +113,6 @@ export default function Cabinet() {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Link to="/graveyard" className="soft" style={{ fontSize: 15 }}>Graveyard</Link>
           <Link to="/wishlist" className="soft" style={{ fontSize: 15 }}>Wishlist</Link>
-          <Link to="/stickers" className="soft" style={{ fontSize: 15 }}>Stickers</Link>
         </div>
       </section>
     </div>
