@@ -7,7 +7,7 @@ import { fmtMl, fmtPct, monthsSince, fillFraction } from '../lib/format';
 import { shareBackup } from '../lib/backup';
 import WallItem from '../components/WallItem';
 import BottleSilhouette from '../components/BottleSilhouette';
-import { InstallBanner, BackupBanner, RemoteRestoreBanner } from '../components/Banners';
+import { InstallBanner, BackupBanner, RemoteRestoreBanner, FirstRunCard, DemoBanner } from '../components/Banners';
 
 export default function Cabinet() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export default function Cabinet() {
   if (active.length === 0) {
     return (
       <div className="screen">
+        <FirstRunCard />
         <InstallBanner />
         <RemoteRestoreBanner />
         <div className="empty">
@@ -66,6 +67,7 @@ export default function Cabinet() {
         )}
       </div>
 
+      <DemoBanner />
       <InstallBanner />
       <RemoteRestoreBanner />
       <BackupBanner onExport={() => void shareBackup()} />

@@ -3,10 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import QRCode from 'qrcode';
 import { db, type Bottle } from '../db';
 import { updateBottle } from '../lib/bottles';
-
-function appUrl(hashPath: string): string {
-  return `${location.origin}${location.pathname}#${hashPath}`;
-}
+import { stickerUrl, cabinetUrl, appRoot, currentOrigin, currentBase, isLocalHost } from '../lib/urls';
 
 function useQr(text: string): string {
   const [url, setUrl] = useState('');
@@ -51,6 +48,9 @@ export default function Stickers() {
     for (const b of chosen) await updateBottle(b.id!, { hasSticker: true });
   }
 
+  const root = appRoot(currentOrigin(), currentBase());
+  const local = isLocalHost(currentOrigin());
+
   return (
     <div className="screen screen--bare">
       <div className="no-print">
@@ -78,6 +78,21 @@ export default function Stickers() {
           ))}
         </div>
 
+        <div
+          className="host-note"
+          data-app-root={root}
+          style={local ? { borderLeft: '3px solid var(--stencil)' } : undefined}
+        >
+          <span className="k smallcaps">Codes point at</span>
+          <span className="mono small" data-testid="sticker-host">{root}</span>
+          {local && (
+            <span className="small" role="alert">
+              This is a local address. Stickers printed now will only work on this
+              computer — open the published address before printing.
+            </span>
+          )}
+        </div>
+
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
           <button className="btn btn--primary" style={{ flex: 1 }} disabled={chosen.length === 0} onClick={() => window.print()}>
             Print {chosen.length} {chosen.length === 1 ? 'sticker' : 'stickers'}
@@ -98,9 +113,10 @@ export default function Stickers() {
 }
 
 function Sticker({ bottle }: { bottle: Bottle }) {
-  const qr = useQr(appUrl(`/b/${bottle.serial}`));
+  const url = stickerUrl(bottle.serial);
+  const qr = useQr(url);
   return (
-    <div className="sticker">
+    <div className="sticker" data-qr-url={url}>
       {qr && <img src={qr} alt={`QR code for bottle ${bottle.serial}`} />}
       <span className="serial">{bottle.serial}</span>
       <span className="name">{bottle.name}</span>
@@ -109,9 +125,10 @@ function Sticker({ bottle }: { bottle: Bottle }) {
 }
 
 function CabinetCard() {
-  const qr = useQr(appUrl('/'));
+  const url = cabinetUrl();
+  const qr = useQr(url);
   return (
-    <div className="cabinet-card">
+    <div className="cabinet-card" data-qr-url={url}>
       {qr && <img src={qr} alt="QR code for the whole cabinet" />}
       <span className="serial" style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, textTransform: 'uppercase' }}>
         The Cabinet

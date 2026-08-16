@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { getMeta, setMeta } from '../lib/meta';
 import { db } from '../db';
 import { importData, type BackupFile } from '../lib/backup';
+import { clearAll } from '../lib/seed';
 import { checkRemote } from '../lib/sync';
 import { timeAgo } from '../lib/format';
 import ConfirmDialog from './ConfirmDialog';
@@ -73,6 +74,81 @@ export function BackupBanner({ onExport }: { onExport: () => void }) {
         <button className="btn btn--quiet" aria-label="Dismiss backup reminder" onClick={() => setDismissedAt(edits)}>Later</button>
       </span>
     </div>
+  );
+}
+
+/**
+ * First run: three lines that matter, on an empty cabinet only.
+ * Not a wizard — one dismissible card, dismissal kept in meta.
+ */
+export function FirstRunCard() {
+  const dismissed = useLiveQuery(async () => (await getMeta<boolean>('firstRunDismissed')) ?? false, [], undefined);
+  const [showInstall, setShowInstall] = useState(false);
+
+  if (dismissed === undefined || dismissed) return null;
+  return (
+    <div className="first-run no-print">
+      <h2 className="display">Three things and you're set</h2>
+      <ol>
+        <li>
+          <strong>Add your first bottle.</strong> Only the name is required —
+          everything else is optional.
+        </li>
+        <li>
+          <strong>Install this to your home screen.</strong>{' '}
+          {isStandalone()
+            ? 'Done — you are running the installed app.'
+            : 'It then works without a signal and keeps your records safe.'}
+          {!isStandalone() && (
+            <>
+              {' '}
+              <button className="linklike" onClick={() => setShowInstall((v) => !v)}>
+                {showInstall ? 'Hide' : 'How'}
+              </button>
+              {showInstall && (
+                <span className="small soft"> In Safari, tap Share, then "Add to Home Screen".</span>
+              )}
+            </>
+          )}
+        </li>
+        <li>
+          <strong>Back up now and then.</strong> Settings, Back up, Save to Files.
+          Your bottles live on this phone only.
+        </li>
+      </ol>
+      <button className="btn btn--quiet" onClick={() => void setMeta('firstRunDismissed', true)}>
+        Got it
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Demo data is made up. Say so, everywhere, until it is cleared —
+ * it must never be mistaken for the real cabinet.
+ */
+export function DemoBanner() {
+  const demo = useLiveQuery(async () => (await getMeta<boolean>('demoLoaded')) ?? false, [], false);
+  const [confirming, setConfirming] = useState(false);
+  if (!demo) return null;
+  return (
+    <>
+      <div className="banner banner--demo no-print">
+        <span>
+          <strong>Demo data.</strong> These bottles are made up, for looking around.
+        </span>
+        <button className="btn" onClick={() => setConfirming(true)}>Clear it</button>
+      </div>
+      <ConfirmDialog
+        open={confirming}
+        confirmLabel="Clear demo data"
+        danger
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => void clearAll().then(() => setConfirming(false))}
+      >
+        <p>Remove the demo bottles and start your real cabinet from empty?</p>
+      </ConfirmDialog>
+    </>
   );
 }
 
